@@ -150,6 +150,7 @@ def main():
                             repo_name = repos[int(op)-1][1]
                             file_name = file_name_descriptor()
                             downloader(file_name, prof_name, repo_name)
+                            msg2 = colored('[ q to exit the menu ]', 'yellow')
 
                         else:
                             msg2 = colored(
