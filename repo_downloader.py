@@ -1,7 +1,7 @@
 from requests import get, exceptions
 from argparse import ArgumentParser
 from termcolor import colored
-from os.path import exists
+from os.path import exists, isdir
 from bs4 import BeautifulSoup
 from time import sleep
 
@@ -72,20 +72,33 @@ def viewer(ln: int) -> None:
         print((ln + 18) * '-')
 
 
-def file_name_descriptor() -> str:
+def file_path_checker() -> str:
     msg = colored('[ q to exit the menu ]', 'yellow')
     while True:
         print(msg, '\n')
         file_name = input('Enter a file name: ').strip()
+        if (not file_name): continue
+
         file_name = file_name if (
             file_name.endswith('.zip')) else file_name + '.zip'
 
-        if (exists(file_name)):
+        down_path = input('Enter the path you want to download: ').strip(r'\/')
+        down_path = '.' if not down_path else down_path
+
+        spliter = '\\' if '\\' in down_path else '/'
+        target_path = down_path + spliter + file_name
+
+        if not isdir(down_path):
+            msg = colored('[!]-> No such path exists <-[!]',
+                          'red', on_color='on_white')
+            continue
+
+        elif exists(target_path):
             msg = colored('[!]-> This file already exists <-[!]',
                           'red', on_color='on_white')
             continue
 
-        return file_name
+        return target_path
 
 
 def find_download_url(repo_url):
@@ -97,14 +110,24 @@ def find_download_url(repo_url):
     return real_url
 
 
-def downloader(file_name: str, user_name: str, repo_name: str) -> None:
+def downloader(file_path: str, user_name: str, repo_name: str) -> None:
     url = find_download_url(f'https://github.com/{user_name}/{repo_name}')
     print(colored('[*]-> Download Started <-[*]', 'green'))
     req = get(url, timeout=TIMEOUT)
-    with open(file_name, 'wb') as output_file:
-        output_file.write(req.content)
-    print(colored('[*]-> Download Completed <-[*]', 'yellow'))
-    sleep(2)
+    sleep(5)
+    try:
+        with open(file_path, 'wb') as output_file:
+            output_file.write(req.content)
+
+    except PermissionError:
+        print(colored(f'[*]-> {file_path} : Permission Error  <-[*]', 'red'))
+
+    except KeyboardInterrupt:
+        colored('[!]-> Download Canceled <-[!]', 'red')
+    
+    else:
+        print(colored('[*]-> Download Completed <-[*]', 'yellow'))
+        sleep(2)
 
 
 def main():
@@ -148,8 +171,8 @@ def main():
 
                         elif (op.isnumeric()) and (int(op) in range(1, len(repos)+1)):
                             repo_name = repos[int(op)-1][1]
-                            file_name = file_name_descriptor()
-                            downloader(file_name, prof_name, repo_name)
+                            file_path = file_path_checker()
+                            downloader(file_path, prof_name, repo_name)
                             msg2 = colored('[ q to exit the menu ]', 'yellow')
 
                         else:
